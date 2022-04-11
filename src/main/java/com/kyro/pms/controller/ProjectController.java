@@ -3,8 +3,10 @@ package com.kyro.pms.controller;
 import com.kyro.pms.entity.Feature;
 import com.kyro.pms.entity.Project;
 import com.kyro.pms.entity.Task;
+import com.kyro.pms.entity.TaskRelation;
 import com.kyro.pms.service.FeatureService;
 import com.kyro.pms.service.ProjectService;
+import com.kyro.pms.service.TaskRelationService;
 import com.kyro.pms.service.TaskService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,6 +14,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import javax.management.openmbean.OpenMBeanConstructorInfo;
 import javax.validation.Valid;
 import java.util.List;
 import java.util.NoSuchElementException;
@@ -29,6 +32,9 @@ public class ProjectController {
 
     @Autowired
     TaskService taskService;
+
+    @Autowired
+    TaskRelationService taskRelationService;
 
     @PostMapping("/")
     public ResponseEntity<Object> createProject(@Valid @RequestBody Project project){
@@ -134,6 +140,27 @@ public class ProjectController {
                 return ResponseEntity.status(HttpStatus.FOUND).body(task);
         }
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body((String)getFeature.getBody());
+    }
+
+    @PostMapping("/{pId}/feature/{fId}/task/{tId}/relation/{deptId}")
+    public ResponseEntity<Object> createTaskRelation(@PathVariable Integer pId, @PathVariable Integer fId, @PathVariable Integer tId, @PathVariable Integer deptId){
+        ResponseEntity<Object> isTaskPresent = getTaskById(pId,fId,tId);
+        ResponseEntity<Object> isDepTaskPresent = getTaskById(pId,fId,deptId);
+
+        if(isTaskPresent.getStatusCode().equals(HttpStatus.FOUND) && isDepTaskPresent.getStatusCode().equals(HttpStatus.FOUND)){
+            TaskRelation taskRelation = new TaskRelation();
+            taskRelation.setTaskId(tId);
+            taskRelation.setTaskDepId(deptId);
+            taskRelation.setFeatureId(fId);
+            taskRelation.setProjectId(pId);
+            if(taskRelationService.isRelationValid(taskRelation)){
+               taskRelationService.createTaskRelation(taskRelation);
+               return ResponseEntity.status(HttpStatus.CREATED).body(taskRelation);
+            }
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("The relation forms a cylic or transitive dependency");
+        }
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Task or Dept Task is not found");
     }
 
 }
