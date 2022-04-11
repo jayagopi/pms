@@ -5,7 +5,8 @@ spring:
     password: password
     driverClassName: org.h2.Driver
   jpa:
-    spring.jpa.database-platform: org.hibernate.dialect.H2Dialect
+    database-platform: org.hibernate.dialect.H2Dialect
+    defer-datasource-initialization: true
   h2:
     console.enabled: true
   error:
